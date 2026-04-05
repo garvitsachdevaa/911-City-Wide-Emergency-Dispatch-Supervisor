@@ -70,7 +70,7 @@ def check_inference() -> bool:
 
 def check_docker_build() -> bool:
     result = run_command(
-        ["docker", "build", "-t", "gradient-ascent-atc", "."],
+        ["docker", "build", "-t", "citywide-dispatch-supervisor", "."],
         "Docker build succeeds",
         check=False,
     )
@@ -103,7 +103,7 @@ def check_benchmark_scores() -> bool:
 
 
 def main() -> int:
-    print("ATC Ground Control RL Environment - Pre-submit Validation")
+    print("911 Dispatch RL Environment - Pre-submit Validation")
     print("=" * 60)
 
     checks = [

@@ -782,7 +782,7 @@ wheels = [
 ]
 
 [[package]]
-name = "gradient-ascent-atc"
+name = "citywide-dispatch-supervisor"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

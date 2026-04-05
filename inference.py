@@ -171,7 +171,7 @@ async def run_episode(
     Returns:
         Tuple of (success, step_count, total_score, list_of_rewards).
     """
-    print(f"[START] task={task_id} env=gradient-ascent-atc model={model_name}")
+    print(f"[START] task={task_id} env=citywide-dispatch-supervisor model={model_name}")
 
     env = OpenEnvEnvironment(task_id=task_id, seed=42)
     step_count = 0

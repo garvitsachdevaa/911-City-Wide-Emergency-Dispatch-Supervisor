@@ -106,14 +106,14 @@ python inference.py
 ### Build
 
 ```bash
-docker build -t gradient-ascent-atc .
+docker build -t citywide-dispatch-supervisor .
 ```
 
 ### Run
 
 ```bash
 # Run container
-docker run -p 8000:8000 gradient-ascent-atc
+docker run -p 8000:8000 citywide-dispatch-supervisor
 
 # Health check
 curl http://localhost:8000/health
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8000/reset -H "Content-Type: application/json" -d 
 
 ## HF Space
 
-**Placeholder**: [https://huggingface.co/spaces/gradient-ascent/atc-ground-control](https://huggingface.co/spaces/gradient-ascent/atc-ground-control)
+**Placeholder**: (add link here)
 
 ## License
 

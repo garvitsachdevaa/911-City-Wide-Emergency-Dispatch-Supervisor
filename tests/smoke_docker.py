@@ -5,8 +5,8 @@ import time
 import requests  # type: ignore
 
 
-IMAGE_NAME = "gradient-ascent-atc"
-CONTAINER_NAME = "test-atc-smoke"
+IMAGE_NAME = "citywide-dispatch-supervisor"
+CONTAINER_NAME = "test-dispatch-smoke"
 HOST = "http://localhost:8000"
 
 

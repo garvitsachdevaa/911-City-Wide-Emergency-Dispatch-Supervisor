@@ -29,6 +29,9 @@ htmlcov/
 *.log
 tmp/
 
+# Do not commit architecture notes
+architecture.md
+
 # Dashboards and temp files
 dashboard.html
 *.png

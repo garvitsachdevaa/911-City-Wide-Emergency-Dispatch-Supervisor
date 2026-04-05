@@ -96,14 +96,14 @@ class TestInferenceFormatCompliance:
         assert tasks_run == self.TASK_IDS, f"Expected {self.TASK_IDS}, got {tasks_run}"
 
     def test_start_line_format(self) -> None:
-        """START line must match exact format: [START] task=X env=gradient-ascent-atc model=Y"""
+        """START line must match exact format: [START] task=X env=citywide-dispatch-supervisor model=Y"""
         env = {
             "API_BASE_URL": "https://api.example.com",
             "MODEL_NAME": "gpt-4o",
             "HF_TOKEN": "test-token",
         }
         _, stdout, _ = self._run_inference_capture(env)
-        pattern = r"\[START\] task=\S+ env=gradient-ascent-atc model=\S+"
+        pattern = r"\[START\] task=\S+ env=citywide-dispatch-supervisor model=\S+"
         for line in stdout.split("\n"):
             if line.startswith("[START]"):
                 assert re.match(pattern, line), f"START line format invalid: {line}"

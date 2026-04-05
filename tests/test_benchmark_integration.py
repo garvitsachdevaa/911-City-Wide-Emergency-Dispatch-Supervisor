@@ -198,7 +198,7 @@ class TestPrevalidationChecks:
 
         if docker_available:
             build_result = subprocess.run(
-                ["docker", "build", "-t", "gradient-ascent-atc-test", "."],
+                ["docker", "build", "-t", "citywide-dispatch-supervisor-test", "."],
                 capture_output=True,
                 timeout=300,
             )
