@@ -1,15 +1,3 @@
----
-title: 911 Dispatch Supervisor
-colorFrom: red
-colorTo: orange
-sdk: docker
-pinned: false
-tags:
-  - openenv
-  - reinforcement-learning
-  - llm-agent
-  - emergency-dispatch
----
 
 # 🚨 911 Dispatch Supervisor
 
