@@ -39,7 +39,7 @@ def check_inference() -> bool:
     env = os.environ.copy()
     env["API_BASE_URL"] = "https://api.openai.com/v1"
     env["MODEL_NAME"] = "gpt-4"
-    env["HF_TOKEN"] = "dummy-token-for-local-validation"
+    env["OPENAI_API_KEY"] = "dummy-token-for-local-validation"
     env["USE_RANDOM"] = "true"
 
     print("\nNOTE: Running inference.py in random-agent mode for local validation")

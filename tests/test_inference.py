@@ -29,7 +29,7 @@ class TestInferenceFormatCompliance:
         env = {
             "API_BASE_URL": "https://api.example.com",
             "MODEL_NAME": "test-model",
-            "HF_TOKEN": "test-token",
+            "OPENAI_API_KEY": "test-token",
             "USE_RANDOM": "true",
         }
         returncode, stdout, stderr = self._run_inference_capture(env)
@@ -46,7 +46,7 @@ class TestInferenceFormatCompliance:
         env = {
             "API_BASE_URL": "https://api.example.com",
             "MODEL_NAME": "test-model",
-            "HF_TOKEN": "test-token",
+            "OPENAI_API_KEY": "test-token",
             "USE_RANDOM": "true",
         }
         _, stdout, _ = self._run_inference_capture(env)
@@ -59,7 +59,7 @@ class TestInferenceFormatCompliance:
         env = {
             "API_BASE_URL": "https://api.example.com",
             "MODEL_NAME": "test-model",
-            "HF_TOKEN": "test-token",
+            "OPENAI_API_KEY": "test-token",
             "USE_RANDOM": "true",
         }
         _, stdout, _ = self._run_inference_capture(env)
@@ -84,6 +84,10 @@ class TestEnvVarValidation:
             merged_env.pop("API_BASE_URL", None)
         if "MODEL_NAME" not in env:
             merged_env.pop("MODEL_NAME", None)
+        if "OPENAI_API_KEY" not in env:
+            merged_env.pop("OPENAI_API_KEY", None)
+        if "HF_TOKEN" not in env:
+            merged_env.pop("HF_TOKEN", None)
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -94,13 +98,23 @@ class TestEnvVarValidation:
         return result.returncode, result.stdout, result.stderr
 
     def test_missing_api_base_url(self) -> None:
-        env = {"MODEL_NAME": "m", "HF_TOKEN": "t", "USE_RANDOM": "true"}
+        env = {"MODEL_NAME": "m", "OPENAI_API_KEY": "t", "USE_RANDOM": "true"}
         returncode, stdout, stderr = self._run_inference_capture(env)
         assert returncode != 0
         assert "API_BASE_URL" in (stdout + stderr)
 
     def test_missing_model_name(self) -> None:
-        env = {"API_BASE_URL": "x", "HF_TOKEN": "t", "USE_RANDOM": "true"}
+        env = {"API_BASE_URL": "x", "OPENAI_API_KEY": "t", "USE_RANDOM": "true"}
         returncode, stdout, stderr = self._run_inference_capture(env)
         assert returncode != 0
         assert "MODEL_NAME" in (stdout + stderr)
+
+    def test_missing_openai_api_key_when_not_random(self) -> None:
+        env = {
+            "API_BASE_URL": "https://api.example.com",
+            "MODEL_NAME": "m",
+            "USE_RANDOM": "false",
+        }
+        returncode, stdout, stderr = self._run_inference_capture(env)
+        assert returncode != 0
+        assert "OPENAI_API_KEY" in (stdout + stderr)

@@ -173,8 +173,10 @@ async def get_dashboard_state() -> dict[str, Any]:
 
 def main():
     import uvicorn
+    import os
 
-    uvicorn.run("src.server.app:app", host="0.0.0.0", port=8000, reload=False)
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run("src.server.app:app", host="0.0.0.0", port=port, reload=False)
 
 
 if __name__ == "__main__":

@@ -35,8 +35,11 @@ This project implements a benchmark environment for training and evaluating LLM 
 |----------|----------|-------------|
 | `API_BASE_URL` | Yes | OpenAI-compatible endpoint base URL |
 | `MODEL_NAME` | Yes | Model identifier string |
-| `HF_TOKEN` | Yes (unless `USE_RANDOM=true`) | API key / HF token |
+| `OPENAI_API_KEY` | Yes (unless `USE_RANDOM=true`) | API key used by the OpenAI Python client |
 | `USE_RANDOM` | No | Set to `true` to use deterministic random agent (no LLM) |
+
+Notes:
+- `HF_TOKEN` is supported as a backwards-compatible alias for `OPENAI_API_KEY`.
 
 ## Tasks
 
@@ -114,8 +117,9 @@ uv sync
 # Run the demo (non-interactive episode visualization)
 uv run python demo.py
 
-# Run inference with LLM agent
-uv run python inference.py
+# Run inference (random baseline, no API calls)
+USE_RANDOM=true API_BASE_URL=https://api.openai.com/v1 MODEL_NAME=gpt-4 OPENAI_API_KEY=x \
+  uv run python inference.py
 
 # Run API server
 uv run python -m src.server.app
@@ -144,7 +148,7 @@ python inference.py
 Run the random baseline agent against all 4 tasks:
 
 ```bash
-USE_RANDOM=true API_BASE_URL=https://api.openai.com/v1 MODEL_NAME=gpt-4 HF_TOKEN=x python inference.py
+USE_RANDOM=true API_BASE_URL=https://api.openai.com/v1 MODEL_NAME=gpt-4 OPENAI_API_KEY=x python inference.py
 ```
 
 Expected output (approximate):
@@ -243,7 +247,19 @@ curl -X POST http://localhost:8000/reset -H "Content-Type: application/json" -d 
 
 ## HF Space
 
-**Placeholder**: (add link here)
+### Deploying to Hugging Face Spaces (Docker)
+
+This repository is compatible with **Docker Spaces** (the README frontmatter includes `sdk: docker` and the Space tags include `openenv`).
+
+1) Create a new Space → choose **Docker**.
+2) Push this repository to the Space.
+3) The server binds to the `PORT` environment variable (HF commonly sets `PORT=7860`).
+
+Once running, the Space should respond to:
+- `GET /health`
+- `POST /reset`
+- `POST /step`
+- `GET /state`
 
 ## License
 

@@ -7,6 +7,7 @@ import sys
 from typing import Any
 
 import httpx
+from openai import AsyncOpenAI
 
 from src.models import Action, DispatchAction
 from src.openenv_environment import OpenEnvEnvironment
@@ -24,10 +25,15 @@ def _validate_env_vars() -> None:
         )
 
     use_random = os.environ.get("USE_RANDOM", "").lower() == "true"
-    api_base_url = os.environ.get("API_BASE_URL", "")
-    is_gemini = "gemini" in api_base_url.lower()
-    if not use_random and not is_gemini and not os.environ.get("HF_TOKEN"):
-        raise EnvironmentError("Missing required environment variable: HF_TOKEN")
+    if use_random:
+        return
+
+    # Prefer OPENAI_API_KEY for hackathon compliance; keep HF_TOKEN for backwards compatibility.
+    if os.environ.get("OPENAI_API_KEY"):
+        return
+    if os.environ.get("HF_TOKEN"):
+        return
+    raise EnvironmentError("Missing required environment variable: OPENAI_API_KEY")
 
 
 def _get_env(var: str) -> str:
@@ -65,30 +71,38 @@ class LLMAgent:
         self.base_url = base_url.rstrip("/")
         self.model = model
 
+        # Official OpenAI Python client for OpenAI-compatible endpoints.
+        self._client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+
     async def chat(self, messages: list[dict]) -> str:
         """Send chat request to LLM endpoint with appropriate auth.
 
-        Auth method depends on endpoint:
-        - Gemini (contains 'gemini'): use ?key= query param
-        - Groq (contains 'groq'): use Authorization: Bearer header
-        - Other OpenAI-compatible: use Authorization: Bearer header
+        Uses the official OpenAI client for OpenAI-compatible endpoints.
+
+        Note: Some non-OpenAI providers (e.g., certain Gemini endpoints) may not
+        be compatible with the OpenAI client; those are handled via a minimal
+        HTTPX fallback.
         """
         is_gemini = "gemini" in self.base_url.lower()
-        headers = {"Content-Type": "application/json"}
-
         if is_gemini:
+            # Fallback for Gemini-style "?key=" auth.
+            headers = {"Content-Type": "application/json"}
             url = f"{self.base_url}/chat/completions?key={self.api_key}"
-        else:
-            url = f"{self.base_url}/chat/completions"
-            headers["Authorization"] = f"Bearer {self.api_key}"
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    url,
+                    json={"model": self.model, "messages": messages},
+                    headers=headers,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                url, json={"model": self.model, "messages": messages}, headers=headers
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"]
+        resp = await self._client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+        )
+        return resp.choices[0].message.content or ""
 
     async def select_action(
         self, legal_actions: list[Action], state_desc: str, prev_obs: Any = None
@@ -305,8 +319,8 @@ async def main() -> int:
         if use_random:
             agent: RandomAgent | LLMAgent = RandomAgent(seed=42)
         else:
-            hf_token = os.environ.get("HF_TOKEN", "")
-            agent = LLMAgent(api_key=hf_token, base_url=api_base_url, model=model_name)
+            api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("HF_TOKEN", "")
+            agent = LLMAgent(api_key=api_key, base_url=api_base_url, model=model_name)
 
         task_ids = ["single_incident", "multi_incident", "mass_casualty", "shift_surge"]
 
