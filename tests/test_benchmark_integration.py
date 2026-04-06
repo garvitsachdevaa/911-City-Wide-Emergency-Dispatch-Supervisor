@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+
+from src.models import Action, DispatchAction
 from src.benchmark import list_tasks, run_all, run_task
+from src.openenv_environment import OpenEnvEnvironment
 
 
 def test_list_tasks_has_four() -> None:
@@ -16,13 +20,34 @@ def test_run_task_score_in_range() -> None:
     result = run_task("single_incident", seed=42)
     assert 0.0 <= result["score"] <= 1.0
     assert result["task_id"] == "single_incident"
-    # Benchmark scoring must match the OpenEnv evaluation path: mean step reward.
-    rewards = result["rewards"]
-    if rewards:
-        expected = sum(rewards) / len(rewards)
-    else:
-        expected = 0.0
-    assert abs(result["score"] - expected) < 1e-9
+
+
+def test_benchmark_and_openenv_use_same_episode_grader(monkeypatch) -> None:
+    from src.tasks.single_incident import SingleIncidentGrader
+
+    expected_score = 0.777
+    monkeypatch.setattr(SingleIncidentGrader, "grade", lambda self, state, rewards: expected_score)
+
+    # Benchmark path.
+    result = run_task("single_incident", seed=42)
+    assert abs(result["score"] - expected_score) < 1e-9
+
+    # OpenEnv path.
+    env = OpenEnvEnvironment(task_id="single_incident", seed=42)
+    asyncio.run(env.reset())
+    obs, reward, done = asyncio.run(
+        env.step(
+            Action(
+                action_type=DispatchAction.DISPATCH,
+                unit_id="MED-1",
+                incident_id="INC-001",
+            )
+        )
+    )
+    assert isinstance(reward, float)
+    assert isinstance(done, bool)
+    assert abs(float(obs.score) - expected_score) < 1e-9
+    env.close()
 
 
 def test_run_all_scores_in_range() -> None:

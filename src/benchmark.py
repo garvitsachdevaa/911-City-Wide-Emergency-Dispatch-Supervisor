@@ -7,8 +7,8 @@ import random
 from typing import Any
 
 from src.models import Action, DispatchAction
+from src.grading import grade_episode
 from src.openenv_environment import OpenEnvEnvironment
-from src.rewards import TaskGrader
 from src.tasks.registry import TaskRegistry
 
 
@@ -70,9 +70,8 @@ async def _run_episode_async(task_id: str, seed: int) -> tuple[float, list[float
             metadata={},
         )
 
-    # Score episodes the same way as the OpenEnv evaluation path:
-    # a normalized aggregate of per-step rewards.
-    final_score = TaskGrader().grade_episode(rewards, task_id=task_id)
+    # Score episodes the same way as the OpenEnv evaluation path.
+    final_score = grade_episode(task_id=task_id, state=final_state, rewards=rewards)
     return final_score, rewards
 
 

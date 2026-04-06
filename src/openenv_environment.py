@@ -3,6 +3,7 @@
 import uuid
 
 from src.city_schema import CitySchemaLoader
+from src.grading import grade_episode
 from src.models import Action, Observation, State
 from src.state_machine import DispatchStateMachine
 
@@ -20,6 +21,8 @@ class OpenEnvEnvironment:
         episode_id = str(uuid.uuid4())
         self._state = self._machine.reset(task_id=self.task_id, episode_id=episode_id)
         self._state.metadata["cumulative_reward"] = 0.0
+        self._state.metadata["episode_rewards"] = []
+        self._state.metadata["episode_score"] = 0.0
         self._last_observation = Observation(
             result="dispatch center online",
             score=0.0,
@@ -40,12 +43,29 @@ class OpenEnvEnvironment:
             raise RuntimeError("Environment not initialized. Call reset() first.")
         state, obs = self._machine.step(self._state, action)
         self._state = state
-        self._last_observation = obs
+
+        # `DispatchStateMachine.step()` sets `obs.score` to the per-step reward.
+        # OpenEnv consumers often interpret `observation.score` as an episode score,
+        # so we keep the per-step reward in `reward` and publish the episode score
+        # into `observation.score`.
+        step_reward = float(obs.score)
+
+        rewards: list[float] = list(self._state.metadata.get("episode_rewards", []))
+        rewards.append(step_reward)
+        self._state.metadata["episode_rewards"] = rewards
+
         cumulative = float(self._state.metadata.get("cumulative_reward", 0.0))
-        cumulative += float(obs.score)
-        self._state.metadata["cumulative_reward"] = cumulative
+        self._state.metadata["cumulative_reward"] = cumulative + step_reward
+
+        # Episode score is derived from the same grading logic as benchmark runs.
+        episode_score = grade_episode(task_id=self.task_id, state=self._state, rewards=rewards)
+        episode_score = max(0.0, min(1.0, float(episode_score)))
+        self._state.metadata["episode_score"] = episode_score
+
         done = self._machine.is_terminal(state)
-        return obs, obs.score, done
+        obs = obs.model_copy(update={"score": episode_score})
+        self._last_observation = obs
+        return obs, step_reward, done
 
     def state(self) -> State:
         if self._state is None:
