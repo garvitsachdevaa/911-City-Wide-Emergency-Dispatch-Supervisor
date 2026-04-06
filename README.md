@@ -1,35 +1,31 @@
 ---
 title: 911 Dispatch Supervisor
-emoji: 🚨
 colorFrom: red
 colorTo: orange
 sdk: docker
 pinned: false
 tags:
-
   - openenv
   - reinforcement-learning
   - llm-agent
   - emergency-dispatch
 ---
 
-# 911 City-Wide Emergency Dispatch Supervisor
+# 911 Dispatch Supervisor
 
-**LLM-powered 911 dispatch supervision — city scale**
-
-A unified RL training environment for city-wide emergency dispatch operations. The agent supervises police, fire, and EMS unit allocation across simultaneous incidents under a deterministic simulation.
+Deterministic simulator + RL-style environment for city-wide 911 dispatch. It supports police/fire/EMS unit allocation across concurrent incidents, with an OpenEnv-compatible interface and a small FastAPI server for interactive runs and the live dashboard.
 
 ## Overview
 
-This project implements a benchmark environment for training and evaluating LLM agents as emergency dispatch supervisors. It features:
+This repo is meant for training and evaluating agents (LLM-based or scripted baselines) as dispatch supervisors. It includes:
 
-- **Dispatch lifecycle**: incidents advance from pending to resolved (or escalated)
-- **Deterministic simulation**: Reproducible episodes under fixed seeds
-- **Protocol validator**: Checks if actions are legal in the current state
-- **OpenEnv compatible**: Standard RL environment interface
-- **Read-only 2D visualization**: Synchronized unit/incident visualization (see below)
+- **Dispatch lifecycle**: incidents progress from pending to resolved (or escalated)
+- **Deterministic simulation**: reproducible episodes under fixed seeds
+- **Protocol validator**: checks whether an action is legal in the current state
+- **OpenEnv-compatible**: standard `reset` / `step` loop
+- **2D visualization**: render a PNG snapshot of the current state
 
-## Visualizer (Judges: please check this)
+## Visualizer
 
 The 2D visualizer is in `src/visualizer/viewer.py` and renders the current state to a PNG.
 
@@ -41,10 +37,10 @@ from src.openenv_environment import OpenEnvEnvironment
 from src.visualizer.viewer import Viewer2D
 
 async def main():
-  env = OpenEnvEnvironment(task_id="multi_incident", seed=42)
-  await env.reset()
-  Viewer2D().render_to_file("frame.png", env.state())
-  env.close()
+    env = OpenEnvEnvironment(task_id="multi_incident", seed=42)
+    await env.reset()
+    Viewer2D().render_to_file("frame.png", env.state())
+    env.close()
 
 asyncio.run(main())
 ```
@@ -194,8 +190,7 @@ The reward signal is a weighted combination of five components:
 | `coverage` | 12% | Geographic distribution of available units across city districts |
 | `protocol` | 8% | Action legality + dispatch phraseology/readback quality (via `Action.notes`) |
 
-**Safety gate:** If any Priority-1 incident was seen and `survival=0.0`, the total episode score is capped at `0.2` regardless of other components.
-
+Safety gate: if any Priority-1 incident was seen and `survival=0.0`, the total episode score is capped at `0.2` regardless of other components.
 
 
 ## Project Structure
@@ -265,13 +260,11 @@ curl -X POST http://localhost:8000/reset -H "Content-Type: application/json" -d 
 | `/dashboard/state` | GET | Extended state for `live_dashboard.html` |
 | `/tasks` | GET | List all available tasks with metadata |
 
-## HF Space
+## Hugging Face Spaces
 
-### Deploying to Hugging Face Spaces (Docker)
+### Deploying to Spaces (Docker)
 
-This repository is compatible with **Docker Spaces** (the README frontmatter includes `sdk: docker` and the Space tags include `openenv`).
-
-1) Create a new Space → choose **Docker**.
+1) Create a new Space and choose **Docker**.
 2) Push this repository to the Space.
 3) The server binds to the `PORT` environment variable (HF commonly sets `PORT=7860`).
 
