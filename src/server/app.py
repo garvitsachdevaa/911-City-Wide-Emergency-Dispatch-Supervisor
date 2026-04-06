@@ -45,7 +45,47 @@ async def runtime_error_handler(request, exc: RuntimeError):
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    # OpenEnv runtime validation expects status=healthy
+    return {"status": "healthy"}
+
+
+@app.get("/metadata")
+async def metadata() -> dict[str, Any]:
+    """OpenEnv metadata endpoint used by runtime validators."""
+
+    return {
+        "name": "citywide-dispatch-supervisor",
+        "description": (
+            "City-wide 911 emergency dispatch supervisor RL environment. "
+            "An LLM agent learns to manage simultaneous incidents by dispatching "
+            "police, fire, and EMS units across a city grid under realistic constraints."
+        ),
+        "version": "0.1.0",
+        "mode": "simulation",
+    }
+
+
+@app.get("/schema")
+async def schema() -> dict[str, Any]:
+    """Return JSON schemas for Action/Observation/State."""
+
+    return {
+        "action": Action.model_json_schema(),
+        "observation": Observation.model_json_schema(),
+        "state": State.model_json_schema(),
+    }
+
+
+@app.post("/mcp")
+async def mcp(payload: dict[str, Any]) -> dict[str, Any]:
+    """Minimal MCP JSON-RPC endpoint.
+
+    The OpenEnv runtime validator only checks that this endpoint is reachable
+    and returns a JSON-RPC shaped response.
+    """
+
+    req_id = payload.get("id")
+    return {"jsonrpc": "2.0", "id": req_id, "result": {"ok": True}}
 
 
 @app.get("/tasks")
