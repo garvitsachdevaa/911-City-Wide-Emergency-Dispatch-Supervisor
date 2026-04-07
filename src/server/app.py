@@ -22,10 +22,7 @@ app.add_middleware(
 _env: OpenEnvEnvironment | None = None
 
 
-class ResetRequest(BaseModel):
-    task_id: str = "single_incident"
-    seed: int | None = None
-
+# Removed ResetRequest since /reset now dynamically parses the Request to handle null bodies gracefully.
 
 class StepRequest(BaseModel):
     action: dict[str, Any]
@@ -157,11 +154,19 @@ async def list_tasks() -> list[dict[str, str]]:
 
 
 @app.post("/reset")
-async def reset(request: ResetRequest | None = None) -> dict[str, Any]:
-    if request is None:
-        request = ResetRequest()
+async def reset(request: Request) -> dict[str, Any]:
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if body is None:
+        body = {}
+        
+    task_id = body.get("task_id", "single_incident")
+    seed = body.get("seed", None)
+
     global _env
-    _env = OpenEnvEnvironment(task_id=request.task_id, seed=request.seed)
+    _env = OpenEnvEnvironment(task_id=task_id, seed=seed)
     obs = await _env.reset()
     return obs.model_dump()
 
