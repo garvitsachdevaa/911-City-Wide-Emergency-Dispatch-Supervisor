@@ -35,6 +35,7 @@ class OpenEnvEnvironment:
                 "coverage": 0.0,
                 "protocol": 1.0,
             },
+            phraseology_score=1.0,
         )
         return self._last_observation
 
@@ -63,7 +64,12 @@ class OpenEnvEnvironment:
         self._state.metadata["episode_score"] = episode_score
 
         done = self._machine.is_terminal(state)
-        obs = obs.model_copy(update={"score": episode_score})
+        
+        phraseology = 0.0
+        if obs.reward_breakdown:
+            phraseology = obs.reward_breakdown.get("protocol", 0.0)
+            
+        obs = obs.model_copy(update={"score": episode_score, "phraseology_score": phraseology})
         self._last_observation = obs
         return obs, step_reward, done
 

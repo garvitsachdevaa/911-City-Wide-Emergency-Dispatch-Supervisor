@@ -304,7 +304,7 @@ class DispatchScenarioFactory:
                 "reported_at_step": 0,
                 "units_assigned": [],
                 "status": IncidentStatus.PENDING,
-                "survival_clock": 600.0,
+                "survival_clock": 480.0,
             }
         }
 
@@ -321,7 +321,7 @@ class DispatchScenarioFactory:
                         "reported_at_step": 5,
                         "units_assigned": [],
                         "status": IncidentStatus.PENDING,
-                        "survival_clock": 1200.0,
+                        "survival_clock": 900.0,
                     }
                 ],
             },
@@ -337,7 +337,7 @@ class DispatchScenarioFactory:
                         "reported_at_step": 12,
                         "units_assigned": [],
                         "status": IncidentStatus.PENDING,
-                        "survival_clock": 600.0,
+                        "survival_clock": 420.0,
                     },
                     {
                         "incident_id": "INC-004",
@@ -348,7 +348,7 @@ class DispatchScenarioFactory:
                         "reported_at_step": 12,
                         "units_assigned": [],
                         "status": IncidentStatus.PENDING,
-                        "survival_clock": 600.0,
+                        "survival_clock": 420.0,
                     },
                 ],
             },
@@ -402,7 +402,7 @@ class DispatchScenarioFactory:
                             "reported_at_step": t,
                             "units_assigned": [],
                             "status": IncidentStatus.PENDING,
-                            "survival_clock": 900.0,
+                            "survival_clock": 720.0,
                         }
                     ],
                 }

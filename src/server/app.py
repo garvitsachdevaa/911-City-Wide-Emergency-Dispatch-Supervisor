@@ -75,8 +75,8 @@ async def schema() -> dict[str, Any]:
 
 
 @app.post("/mcp")
-async def mcp(request: Request) -> dict:
-    """Full MCP JSON-RPC endpoint supporting reset/step/state/legal_actions methods."""
+async def mcp_endpoint(request: Request):
+    """MCP JSON-RPC passthrough for OpenEnv runtime compatibility."""
     try:
         body = await request.json()
     except Exception:
@@ -86,55 +86,21 @@ async def mcp(request: Request) -> dict:
     req_id = body.get("id", 1)
 
     if method == "reset":
-        params = body.get("params", {})
-        global _env
-        _env = OpenEnvEnvironment(
-            task_id=params.get("task_id", "single_incident"),
-            seed=params.get("seed"),
-        )
-        obs = await _env.reset()
-        return {"jsonrpc": "2.0", "id": req_id, "result": obs.model_dump()}
-
+        result = await _env.reset()
+        return {"jsonrpc": "2.0", "id": req_id, "result": result.model_dump()}
     elif method == "step":
-        if _env is None:
-            return JSONResponse(
-                {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": "Environment not initialized. Call reset first."}},
-                status_code=400,
-            )
         action_data = body.get("params", {}).get("action", {})
-        try:
-            action = Action.model_validate(action_data)
-        except Exception as e:
-            return JSONResponse(
-                {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": f"Invalid action: {e}"}},
-                status_code=400,
-            )
+        action = Action(**action_data)
         obs, reward, done = await _env.step(action)
-        return {
-            "jsonrpc": "2.0", "id": req_id,
-            "result": {"observation": obs.model_dump(), "reward": reward, "done": done},
-        }
-
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"observation": obs.model_dump(), "reward": reward, "done": done}}
     elif method == "state":
-        if _env is None:
-            return JSONResponse(
-                {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": "Environment not initialized."}},
-                status_code=400,
-            )
-        return {"jsonrpc": "2.0", "id": req_id, "result": _env.state().model_dump()}
-
+        result = _env.state()
+        return {"jsonrpc": "2.0", "id": req_id, "result": result.model_dump()}
     elif method == "legal_actions":
-        if _env is None:
-            return {"jsonrpc": "2.0", "id": req_id, "result": []}
         actions = _env.legal_actions()
         return {"jsonrpc": "2.0", "id": req_id, "result": [a.model_dump() for a in actions]}
-
     else:
-        # Unknown method — still return 200 with JSON-RPC error (OpenEnv validator just checks reachability)
-        return {
-            "jsonrpc": "2.0", "id": req_id,
-            "error": {"code": -32601, "message": f"Method not found: {method}"},
-        }
+        return JSONResponse({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}, status_code=404)
 
 
 @app.get("/tasks")

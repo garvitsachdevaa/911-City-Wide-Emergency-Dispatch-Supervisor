@@ -79,6 +79,7 @@ class Observation(BaseModel):
     protocol_ok: bool = False
     issues: list[str] = Field(default_factory=list)
     reward_breakdown: dict[str, float] | None = None
+    phraseology_score: float = 0.0
 
 
 class UnitState(BaseModel):

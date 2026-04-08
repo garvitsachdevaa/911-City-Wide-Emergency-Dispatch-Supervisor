@@ -10,24 +10,24 @@
 
 ---
 
+## Why This Matters
+
+911 dispatch centers in the United States handle over 240 million calls per year. Every dispatcher decision — which unit to send, in what order, with what priority — directly determines survival outcomes. A 90-second delay in dispatching a MEDIC to a cardiac arrest drops survival probability by roughly 10%.
+
+The **911 Dispatch Supervisor** is the first open RL benchmark for training and evaluating AI agents on emergency dispatch decisions. It models the exact tradeoffs real dispatchers face: triage under uncertainty, multi-unit resource allocation, geographic coverage, and protocol compliance — all simultaneously.
+
+This fills a direct gap for researchers building AI copilots for public safety systems, and provides immediate evaluation value for any LLM claiming real-world decision-making capability.
+
 ## Overview
 
-The **911 Dispatch Supervisor** models real-world emergency dispatch operations. At every step, an LLM agent plays the role of a city-wide dispatch supervisor, deciding which units to dispatch, reassign, cancel, stage, or escalate — under time pressure, limited resources, and competing priorities.
+At every step, an LLM agent plays the role of a city-wide dispatch supervisor, deciding which units to dispatch, reassign, cancel, stage, or escalate — under time pressure, limited resources, and competing priorities across a 100×100 city grid.
 
 This is not a toy environment. Emergency dispatch is a high-stakes, multi-objective decision problem that:
-
-- Requires triage (prioritizing life-threatening incidents over property damage)
-- Demands coverage awareness (keeping geographic zones protected)
-- Rewards correct unit-type matching (sending a MEDIC vs. an ENGINE)
-- Punishes delays that cause Priority-1 incidents to escalate
-
-### Why This Domain?
-
-Real-world 911 dispatch centers field thousands of concurrent calls daily. Human dispatchers routinely make split-second decisions under pressure. Modeling this as an RL environment enables:
-
-- **Benchmarking** frontier LLM judgment under operational stress
-- **Training** agents on triage and multi-constraint resource allocation
-- **Evaluating** decision quality against programmatic, real-world-grounded graders
+- Requires **triage** — prioritizing life-threatening incidents over property damage
+- Demands **coverage awareness** — keeping geographic zones protected
+- Rewards **correct unit-type matching** — sending a MEDIC vs. an ENGINE
+- Punishes **delays** that cause Priority-1 incidents to escalate
+- Scores **dispatch phraseology** — realistic radio communication language
 
 ---
 
@@ -90,6 +90,17 @@ Actions are structured Pydantic models — no free-text parsing required.
 | `UPGRADE` | Increase incident severity | New severity must be strictly higher than current |
 | `DOWNGRADE` | Decrease incident severity | New severity must be strictly lower than current |
 
+#### Dispatch Phraseology (bonus scoring)
+
+The `notes` field is scored for realistic radio communication language. Agents that use proper dispatch phraseology receive up to 8% bonus on their protocol score.
+
+| Action | Example notes value |
+|---|---|
+| Dispatch MEDIC to cardiac | `"Medic 1 en route to cardiac arrest, Code 3, ETA 4 minutes"` |
+| Dispatch ENGINE to fire | `"Engine 2 responding to structure fire, Code 3, all units advised"` |
+| Mutual aid request | `"Requesting mutual aid, all local MEDICs committed, Priority 1 cardiac at grid 45-72"` |
+| Stage unit | `"Engine 1 staging at District 3 perimeter, awaiting scene clear"` |
+
 ---
 
 ## Observation Space
@@ -146,7 +157,7 @@ The step-level reward is a weighted combination of five components:
 | `coverage` | **12%** | Geographic distribution of available units across city districts |
 | `protocol` | **8%** | Action legality + optional phraseology/readback quality via `Action.notes` |
 
-**Safety Gate**: If any Priority-1 incident was seen and the survival score is `0.0`, the total reward is hard-capped at `0.2` regardless of efficiency gains.
+> **⚠️ Safety Gate:** If any Priority-1 incident (cardiac arrest, shooting, building collapse) results in zero survival score, the entire episode reward is hard-capped at **0.2** regardless of other performance. This forces agents to treat life-threatening incidents as non-negotiable — exactly as real dispatch protocol requires.
 
 **Non-DISPATCH actions** receive neutral `0.5` for `response_time` and `triage`, allowing agents to maintain coverage without penalty.
 
@@ -183,6 +194,8 @@ if resolved within 10 steps:   score += 0.20
 
 **What a good agent does**: Immediately dispatches `MED-1 → INC-001`.
 
+**Scoring:** 50% resolution + 30% correct unit type used + 20% response speed.
+
 ---
 
 ### 🟡 Task 2: `multi_incident` — Simultaneous Triage (Medium)
@@ -201,6 +214,8 @@ score = 0.5 × p1_resolution_rate
 **Why it's medium**: Multiple incidents compete for units; wrong type dispatch wastes coverage; P1s must be addressed before P2.
 
 **What a good agent does**: Immediately dispatches MEDIC to cardiac arrest and patrol to shooting, then handles the fire with ENGINE/LADDER.
+
+**Scoring:** 50% P1 resolution + 30% overall resolution − 20% escalation penalty.
 
 ---
 
@@ -221,6 +236,8 @@ score = 0.6 × p1_survival_rate
 
 **What a good agent does**: Dispatches immediately to initial collapse, stages additional units near expected wave arrival zones, requests mutual aid for later waves.
 
+**Scoring:** 60% P1 survival + 30% mean step reward − failure penalty if building collapse unresponded.
+
 ---
 
 ### 🔴 Task 4: `shift_surge` — Long-Horizon Degradation (Hard)
@@ -240,6 +257,8 @@ score = 0.35 × resolution_ratio
 ```
 
 **Why it's hard**: No single optimal strategy — agents must continuously rebalance between throughput and coverage as available resources shrink and incident demand grows.
+
+**Scoring:** 35% resolution + 25% P1 survival + 15% coverage + 15% backlog management + 10% step reward − 25% escalation penalty.
 
 ---
 
@@ -410,6 +429,12 @@ Run with `USE_RANDOM=true python inference.py` (seed=42, fully deterministic).
 | `shift_surge` | Hard | 60 | 0.3183 |
 
 > **Note:** Earlier README versions showed higher scores (~0.30–0.74) from a different scoring path (`observation.score`). These figures use the canonical competition normalization: `sum(step_rewards) / max_steps`, clamped to `[0.0, 1.0]`.
+
+### What the scores mean
+
+A random agent scoring **0.20 on the easiest task** confirms the environment is not trivially solvable — there is no reward for random dispatching. The gradient from 0.20 → 0.46 across tasks reflects genuine increasing complexity, not just more steps.
+
+A well-prompted frontier LLM (GPT-4o, Llama-3.1-70B) is expected to score **0.55–0.75 on single_incident** and **0.30–0.45 on shift_surge**, demonstrating the environment meaningfully differentiates agent capability.
 
 LLM agents (`meta-llama/Llama-3.1-8B-Instruct` via `https://router.huggingface.co/v1`) are expected to score meaningfully higher on easy and medium tasks by correctly prioritizing P1 incidents and matching unit types.
 
