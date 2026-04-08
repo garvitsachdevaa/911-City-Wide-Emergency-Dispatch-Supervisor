@@ -45,11 +45,22 @@ async def runtime_error_handler(request, exc: RuntimeError):
 async def root():
     """Serve the live dashboard on the root route for HF Spaces."""
     import os
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    current_file = os.path.abspath(__file__)
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
     dashboard_path = os.path.join(base_dir, "live_dashboard.html")
+    
+    # Fallback to current working directory if not found
+    if not os.path.exists(dashboard_path):
+        dashboard_path = os.path.join(os.getcwd(), "live_dashboard.html")
+
     if os.path.exists(dashboard_path):
         return FileResponse(dashboard_path)
-    return JSONResponse({"status": "healthy", "error": "dashboard not found"})
+        
+    return JSONResponse({
+        "status": "healthy", 
+        "error": "dashboard not found",
+        "debug": dashboard_path
+    })
 
 
 @app.get("/health")
