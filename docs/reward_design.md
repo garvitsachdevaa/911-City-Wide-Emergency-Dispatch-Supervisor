@@ -31,9 +31,13 @@ This means even a weak agent that dispatches randomly receives informative gradi
 
 ## Difficulty Gradient
 
-| Task | Random Score | Design Intent |
-|---|---|---|
-| single_incident | ~0.20 | Baseline — one decision, one unit, one incident |
-| multi_incident | ~0.31 | Triage required — competing P1 and P2 incidents |
-| mass_casualty | ~0.30 | Adaptability — surprise incident waves mid-episode |
-| shift_surge | ~0.32 | Resource scarcity — units going OOS mid-shift |
+| Task | Random Score | LLM Expected | Design Intent |
+|---|---|---|---|
+| single_incident | 0.20 | 0.55–0.75 | One decision, one unit — tests basic triage |
+| multi_incident | 0.31 | 0.40–0.60 | Competing P1s — tests priority ordering |
+| mass_casualty | ~0.28 | 0.30–0.50 | Surprise waves — tests adaptability |
+| shift_surge | ~0.25 | 0.25–0.40 | Resource scarcity — tests planning under constraint |
+
+The gap between random and LLM scores is the signal this benchmark measures.
+A model that scores 0.70 on single_incident but 0.25 on shift_surge is demonstrating
+exactly the capability boundary the environment is designed to expose.

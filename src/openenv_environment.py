@@ -64,12 +64,28 @@ class OpenEnvEnvironment:
         self._state.metadata["episode_score"] = episode_score
 
         done = self._machine.is_terminal(state)
+
+        active_p1_count = sum(
+            1
+            for i in state.incidents.values()
+            if i.severity.value == "PRIORITY_1" and i.status.value not in {"RESOLVED", "ESCALATED"}
+        )
+        units_available = sum(1 for u in state.units.values() if u.status.value == "AVAILABLE")
         
         phraseology = 0.0
         if obs.reward_breakdown:
             phraseology = obs.reward_breakdown.get("protocol", 0.0)
-            
-        obs = obs.model_copy(update={"score": episode_score, "phraseology_score": phraseology})
+
+        obs = obs.model_copy(
+            update={
+                "score": episode_score,
+                "phraseology_score": phraseology,
+                "active_p1_count": active_p1_count,
+                "units_available": units_available,
+                "step_count": state.step_count,
+                "episode_done": done,
+            }
+        )
         self._last_observation = obs
         return obs, step_reward, done
 

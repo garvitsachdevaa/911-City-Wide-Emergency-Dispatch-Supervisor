@@ -80,6 +80,10 @@ class Observation(BaseModel):
     issues: list[str] = Field(default_factory=list)
     reward_breakdown: dict[str, float] | None = None
     phraseology_score: float = 0.0
+    active_p1_count: int = 0
+    units_available: int = 0
+    step_count: int = 0
+    episode_done: bool = False
 
 
 class UnitState(BaseModel):
